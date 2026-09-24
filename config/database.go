@@ -44,4 +44,3 @@ func ConnectDB() error {
 
 	return nil
 }
-

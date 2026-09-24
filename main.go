@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+
 	"go-auth-system/config"
 	"go-auth-system/handlers"
 	"go-auth-system/middleware"
@@ -29,22 +30,35 @@ func main() {
 		})
 	})
 
-	// Start server
-
+	// Authentication routes
 	r.POST("/api/auth/signup", handlers.Signup)
 	r.POST("/api/auth/login", handlers.Login)
 
-	r.GET(
-	"/api/auth/me",
-	middleware.AuthMiddleware(),
-	func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "You are authenticated",
-			"user":    c.MustGet("user"),
-		})
-	},
-)
+	// Forgot password
+	r.POST("/api/auth/forgot-password", handlers.ForgotPassword)
 
+	// Reset password
+	r.POST("/api/auth/reset-password", handlers.ResetPassword)
+
+	// Protected route
+	r.GET(
+		"/api/auth/me",
+		middleware.AuthMiddleware(),
+		func(c *gin.Context) {
+			c.JSON(200, gin.H{
+				"message": "You are authenticated",
+				"user":    c.MustGet("user"),
+			})
+		},
+	)
+
+	// Protected delete user route
+	r.DELETE(
+		"/api/auth/users/:id",
+		middleware.AuthMiddleware(),
+		handlers.DeleteUser,
+	)
+
+	// Start server
 	r.Run(":8080")
 }
-
