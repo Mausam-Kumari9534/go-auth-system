@@ -3,7 +3,7 @@
     "info": {
         "title": "Go Auth System API",
         "description": "Authentication API built with Go, Gin, MongoDB and JWT.",
-        "version": "1.0.0"
+        "version": "1.1.0"
     },
     "servers": [
         {
@@ -19,6 +19,14 @@
         {
             "name": "Authentication",
             "description": "User authentication APIs"
+        },
+        {
+            "name": "Password",
+            "description": "Password recovery and reset APIs"
+        },
+        {
+            "name": "User",
+            "description": "User management APIs"
         }
     ],
     "paths": {
@@ -64,9 +72,6 @@
                     },
                     "400": {
                         "description": "Invalid request"
-                    },
-                    "409": {
-                        "description": "User already exists"
                     },
                     "500": {
                         "description": "Internal server error"
@@ -129,7 +134,140 @@
                         "description": "Authenticated user information"
                     },
                     "401": {
+                        "description": "Authorization header is required or token is invalid"
+                    }
+                }
+            }
+        },
+        "/api/auth/users/{id}": {
+            "delete": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete a user",
+                "description": "Deletes a user using their MongoDB ObjectID. Authentication is required.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "MongoDB ObjectID of the user",
+                        "schema": {
+                            "type": "string",
+                            "example": "6ab3d8d815d66f2b61057ed2"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID"
+                    },
+                    "401": {
                         "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/auth/forgot-password": {
+            "post": {
+                "tags": [
+                    "Password"
+                ],
+                "summary": "Generate a password reset token",
+                "description": "Generates a secure password reset token for the user. In the current development implementation, the token is returned in the API response. In production, it should be sent to the user's email.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ForgotPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset token generated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ForgotPasswordResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Email is required or request is invalid"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/api/auth/reset-password": {
+            "post": {
+                "tags": [
+                    "Password"
+                ],
+                "summary": "Reset user password",
+                "description": "Changes the user's password using a valid password reset token. The reset token expires after one hour and can only be used once.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or password"
+                    },
+                    "401": {
+                        "description": "Invalid, expired, or already used reset token"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -212,21 +350,84 @@
                         "example": "eyJhbGciOiJIUzI1NiIs..."
                     },
                     "user": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "string",
-                                "example": "6ab3d8d815d66f2b61057ed2"
-                            },
-                            "name": {
-                                "type": "string",
-                                "example": "Mausam"
-                            },
-                            "email": {
-                                "type": "string",
-                                "example": "mausam@example.com"
-                            }
-                        }
+                        "$ref": "#/components/schemas/User"
+                    }
+                }
+            },
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "6ab3d8d815d66f2b61057ed2"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Mausam"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "mausam@example.com"
+                    }
+                }
+            },
+            "ForgotPasswordRequest": {
+                "type": "object",
+                "required": [
+                    "email"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "mausam@example.com"
+                    }
+                }
+            },
+            "ForgotPasswordResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Password reset token generated"
+                    },
+                    "reset_token": {
+                        "type": "string",
+                        "example": "f5c7a2e9..."
+                    },
+                    "expires_in": {
+                        "type": "string",
+                        "example": "1 hour"
+                    }
+                }
+            },
+            "ResetPasswordRequest": {
+                "type": "object",
+                "required": [
+                    "token",
+                    "new_password"
+                ],
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "description": "Password reset token generated by the forgot-password endpoint",
+                        "example": "f5c7a2e9..."
+                    },
+                    "new_password": {
+                        "type": "string",
+                        "format": "password",
+                        "minLength": 8,
+                        "example": "NewPassword@123"
+                    }
+                }
+            },
+            "MessageResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Operation successful"
                     }
                 }
             }
